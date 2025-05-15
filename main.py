@@ -9,7 +9,6 @@ from fastapi.responses import RedirectResponse
 from api.main import router
 from core.config import get_settings
 from core.logger import logger
-from models import *
 
 settings = get_settings()
 
