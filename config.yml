@@ -1,0 +1,21 @@
+# Application configuration
+app:
+  name: "iot_student_presence_tool"
+  description: "A FastAPI application with ESP32 wifi and cable connection support"
+
+# Environment configuration
+environment:
+  development:
+    debug: true
+    cors_origins:
+      - http://localhost
+      - http://localhost:8000
+  testing:
+    debug: true
+    cors_origins:
+      - http://localhost
+      - http://localhost:8000
+  production:
+    debug: false
+    cors_origins:
+      - https://example.com
