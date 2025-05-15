@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from core.db import get_db
-from models.course import Course
 from crud import course as course_crud
 
 # Create schemas for request/response

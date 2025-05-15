@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 import bcrypt
 
 from core.db import get_db
-from models.professor import Professor
 from crud import professor as professor_crud
 
 # Create schemas for request/response
