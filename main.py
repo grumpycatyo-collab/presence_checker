@@ -23,10 +23,14 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting up application")
+
+    from core.db import Base, engine
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created")
+
     yield
     # Shutdown
     logger.info("Shutting down application")
-
 
 app = FastAPI(
     title=settings.app_name,
@@ -57,4 +61,4 @@ logger.info(f"Application {settings.app_name} initialized")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

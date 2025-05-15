@@ -1,7 +1,12 @@
-# Application configuration
 app:
   name: "iot_student_presence_tool"
   description: "A FastAPI application with ESP32 wifi and cable connection support"
+
+postgres_db:
+  user: postgres.pzimhcmuhynltrrhkvwc
+  host: aws-0-eu-central-1.pooler.supabase.com
+  port: 6543
+  dbname: postgres
 
 # Environment configuration
 environment:
