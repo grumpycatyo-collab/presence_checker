@@ -26,6 +26,14 @@ A FastAPI application with ESP32 wifi and cable connection support
 ```
 2. Or just run the application with Docker:
 ```bash
-   docker compose up
+   docker compose up --build
 ```
 This will record your changes dynamically and reload the application.
+
+**NOTE:**
+Please when you need an additional package, add it to the requirements.txt file and run:
+```bash
+   docker compose up --build
+```
+
+E.g, you need to add `fastapi` to the requirements.txt file, then run `docker compose up --build`.
