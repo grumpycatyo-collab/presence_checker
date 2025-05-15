@@ -28,6 +28,10 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created")
 
+    from core.listener import start_listener_thread # TODO: Not tested
+    start_listener_thread()
+    logger.info("Serial listener started")
+
     yield
     # Shutdown
     logger.info("Shutting down application")
