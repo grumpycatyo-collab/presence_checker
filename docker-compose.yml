@@ -11,4 +11,4 @@ services:
       - API_ENV=development
       - LOG_LEVEL=INFO
       - SECRET_KEY=dev_secret_key_change_in_production
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload

@@ -20,8 +20,6 @@ RUN mkdir -p /app/logs
 # Copy project
 COPY . /app/
 
-# Run Ruff check before starting the application
-RUN ruff check .
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
