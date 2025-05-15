@@ -1,4 +1,3 @@
-# Application configuration
 app:
   name: "iot_student_presence_tool"
   description: "A FastAPI application with ESP32 wifi and cable connection support"

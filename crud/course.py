@@ -1,4 +1,4 @@
-from core.db import SessionLocal as Session
+from sqlalchemy.orm import Session
 from models.course import Course, CourseGroup
 
 def get_course(db: Session, course_id: int):
@@ -35,12 +35,13 @@ def delete_course(db: Session, course_id: int):
         db.commit()
     return db_course
 
-# def add_group_to_course(db: Session, course_id: int, group_id: int):
-#     db_course_group = CourseGroup(course_id=course_id, group_id=group_id)
-#     db.add(db_course_group)
-#     db.commit()
-#     db.refresh(db_course_group)
-#     return db_course_group
+## TODO: Should work but needs GROUPS crud
+def add_group_to_course(db: Session, course_id: int, group_id: int):
+    db_course_group = CourseGroup(course_id=course_id, group_id=group_id)
+    db.add(db_course_group)
+    db.commit()
+    db.refresh(db_course_group)
+    return db_course_group
 
-# def get_course_groups(db: Session, course_id: int):
-#     return db.query(CourseGroup).filter(CourseGroup.course_id == course_id).all()
+def get_course_groups(db: Session, course_id: int):
+    return db.query(CourseGroup).filter(CourseGroup.course_id == course_id).all()
