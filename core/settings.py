@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     api_env: Environment = Field(default=Environment.DEVELOPMENT, env="API_ENV")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     secret_key: str = Field(default="default_insecure_key", env="SECRET_KEY")
+    postgres_password: str = Field(default="", env="POSTGRES_PASSWORD")
 
     # From config.yml
     config: dict = {}
@@ -56,3 +57,15 @@ class Settings(BaseSettings):
             .get(self.api_env, {})
             .get("cors_origins", [])
         )
+
+    @property
+    def postgres_dsn(self) -> str:
+        """Get PostgreSQL connection string."""
+        db_config = self.config.get("postgres_db", {})
+        user = db_config.get("user", "")
+        host = db_config.get("host", "")
+        port = db_config.get("port", "5432")
+        dbname = db_config.get("dbname", "")
+
+        return f"postgresql://{user}:{self.postgres_password}@{host}:{port}/{dbname}"
+

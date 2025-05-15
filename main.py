@@ -24,10 +24,14 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting up application")
+
+    from core.db import Base, engine
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created")
+
     yield
     # Shutdown
     logger.info("Shutting down application")
-
 
 app = FastAPI(
     title=settings.app_name,

@@ -1,4 +1,4 @@
-from core.db import SessionLocal as Session
+from sqlalchemy.orm import Session
 from models.professor import Professor
 
 def get_professor(db: Session, professor_id: int):
