@@ -69,3 +69,9 @@ class Settings(BaseSettings):
 
         return f"postgresql://{user}:{self.postgres_password}@{host}:{port}/{dbname}"
 
+    @property
+    def esp_32_connection(self) -> str:
+        """Get ESP32 connection setting."""
+        return self.config.get("esp_32_connection", "wifi")
+
+
