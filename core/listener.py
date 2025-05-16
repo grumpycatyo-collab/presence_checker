@@ -1,6 +1,7 @@
 import serial
 import threading
 from .logger import logger
+from crud import attendance as attendance_crud
 
 def serial_listener(port='/dev/tty.usbserial-0001', baudrate=115200):
     ser = serial.Serial(port, baudrate)
@@ -15,8 +16,7 @@ def serial_listener(port='/dev/tty.usbserial-0001', baudrate=115200):
 
                 if len(parts) == 4:
                     uid, room, time_now, day = parts
-                    # message = attendance_crud.check_attendance(uid, room, time_now, day) # Should be implemented in the crud module
-                    message = "Good"
+                    message = attendance_crud.mock_check_attendance(uid, room, time_now, day)
                     logger.info("Sending:", message)
                     ser.write((message + "\n").encode())
         except Exception as e:
