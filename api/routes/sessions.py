@@ -83,3 +83,7 @@ def delete_session(session_id: int, db: Session = Depends(get_db)):
 def get_current_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
     sessions = session_crud.get_current_sessions_by_professor_and_time(db=db, professor_id=professor_id)
     return sessions
+
+@router.get("/professor/{professor_id}", response_model=List[SessionResponse])
+def get_all_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
+    return session_crud.get_sessions_by_professor(db, professor_id=professor_id)

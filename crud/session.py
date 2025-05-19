@@ -84,3 +84,13 @@ def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
 
     return current_sessions
 
+def get_sessions_by_professor(db: Session, professor_id: int):
+    professor = db.get(Professor, professor_id)
+    if not professor:
+        return []
+
+    sessions = []
+    for course in professor.courses:
+        sessions.extend(course.sessions)
+
+    return sessions
