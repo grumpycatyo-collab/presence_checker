@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from models.session import Session as SessionModel, SessionStatus
 from datetime import datetime, timedelta
 from models.professor import Professor
+from models.attendance import Attendance
+from sqlalchemy.orm import joinedload
 
 
 def get_session(db: Session, session_id: int):
@@ -73,16 +75,23 @@ def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
     if not professor:
         return []
 
-    current_sessions = []
-
+    sessions = []
     for course in professor.courses:
-        for session in course.sessions:
-            if session.start_time <= now + buffer and session.end_time >= now - buffer:
-                current_sessions.append(session)
+        course_sessions = (
+            db.query(SessionModel)
+            .options(
+                joinedload(SessionModel.attendances).joinedload(Attendance.student)
+            )
+            .filter(
+                SessionModel.course_id == course.course_id,
+                SessionModel.start_time <= now + buffer,
+                SessionModel.end_time >= now - buffer
+            )
+            .all()
+        )
+        sessions.extend(course_sessions)
 
-    #TODO: add filtering based on status
-
-    return current_sessions
+    return sessions
 
 def get_sessions_by_professor(db: Session, professor_id: int):
     professor = db.get(Professor, professor_id)
@@ -91,6 +100,14 @@ def get_sessions_by_professor(db: Session, professor_id: int):
 
     sessions = []
     for course in professor.courses:
-        sessions.extend(course.sessions)
+        course_sessions = (
+            db.query(SessionModel)
+            .options(
+                joinedload(SessionModel.attendances).joinedload(Attendance.student)
+            )
+            .filter(SessionModel.course_id == course.course_id)
+            .all()
+        )
+        sessions.extend(course_sessions)
 
     return sessions

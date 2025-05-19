@@ -13,6 +13,21 @@ class SessionStatus(str, Enum):
     active = "active"
     ended = "ended"
 
+class StudentResponse(BaseModel):
+    student_id: int
+    name: str
+    group_id: int
+
+    class Config:
+        orm_mode = True
+
+class AttendanceResponse(BaseModel):
+    attendance_id: int
+    time : datetime
+    status: str
+    student: StudentResponse
+    class Config:
+        orm_mode = True
 # Schemas
 class SessionBase(BaseModel):
     course_id: int
@@ -36,6 +51,7 @@ class SessionResponse(SessionBase):
     session_id: int
     created_at: datetime
     updated_at: datetime
+    attendances: List[AttendanceResponse] = []
 
     class Config:
         orm_mode = True
