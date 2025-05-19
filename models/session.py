@@ -6,7 +6,7 @@ import enum
 from core.db import Base
 
 class SessionStatus(enum.Enum):
-    not_started = "not started"
+    not_started = "not_started"
     active = "active"
     ended = "ended"
 
