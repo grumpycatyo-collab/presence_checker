@@ -8,6 +8,8 @@ postgres_db:
   port: 6543
   dbname: postgres
 
+esp_32_connection: wifi # or "usb"
+
 # Environment configuration
 environment:
   development:

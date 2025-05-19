@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from core.db import get_db
 from crud import course as course_crud
 
-# Create schemas for request/response
 from pydantic import BaseModel
 
 class CourseBase(BaseModel):
@@ -63,7 +62,6 @@ def update_course(course_id: int, course: CourseUpdate, db: Session = Depends(ge
     if db_course is None:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    # Check if the professor exists if we're updating professor_id (could be added)
     return course_crud.update_course(
         db=db,
         course_id=course_id,
