@@ -8,6 +8,7 @@ from .routes.courses import router as courses_router
 from .routes.attendances import router as attendances_router
 from .routes.groups import router as groups_router
 from .routes.sessions import router as sessions_router
+from .routes.students import router as students_router
 
 router = APIRouter()
 
@@ -17,3 +18,4 @@ router.include_router(courses_router)
 router.include_router(attendances_router)
 router.include_router(groups_router)
 router.include_router(sessions_router)
+router.include_router(students_router)
