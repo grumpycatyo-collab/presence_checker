@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from models.session import Session as SessionModel, SessionStatus
-from datetime import datetime
+from datetime import datetime, timedelta
+from models.professor import Professor
+
 
 def get_session(db: Session, session_id: int):
     return db.query(SessionModel).filter(SessionModel.session_id == session_id).first()
@@ -61,3 +63,24 @@ def delete_session(db: Session, session_id: int):
         db.delete(db_session)
         db.commit()
     return db_session
+
+
+def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
+    now = datetime.utcnow()
+    buffer = timedelta(minutes=5)
+
+    professor = db.get(Professor, professor_id)
+    if not professor:
+        return []
+
+    current_sessions = []
+
+    for course in professor.courses:
+        for session in course.sessions:
+            if session.start_time <= now + buffer and session.end_time >= now - buffer:
+                current_sessions.append(session)
+
+    #TODO: add filtering based on status
+
+    return current_sessions
+
