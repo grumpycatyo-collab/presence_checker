@@ -91,6 +91,7 @@ def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
         )
         sessions.extend(course_sessions)
 
+    # TODO: implement filtering based on status
     return sessions
 
 def get_sessions_by_professor(db: Session, professor_id: int):
@@ -111,3 +112,6 @@ def get_sessions_by_professor(db: Session, professor_id: int):
         sessions.extend(course_sessions)
 
     return sessions
+
+
+#TODO: implement a status update mechanism

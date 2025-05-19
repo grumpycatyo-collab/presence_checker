@@ -92,9 +92,6 @@ def delete_session(session_id: int, db: Session = Depends(get_db)):
     session_crud.delete_session(db=db, session_id=session_id)
     return {"detail": "Session deleted successfully"}
 
-
-#TODO: implement gat_sessions_by_prof and get_current_session_by_prof_and time
-
 @router.get("/current/{professor_id}", response_model=List[SessionResponse])
 def get_current_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
     sessions = session_crud.get_current_sessions_by_professor_and_time(db=db, professor_id=professor_id)
