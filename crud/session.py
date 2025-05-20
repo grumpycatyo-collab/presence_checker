@@ -6,11 +6,34 @@ from models.attendance import Attendance
 from sqlalchemy.orm import joinedload
 
 
+def _update_session_status(session: SessionModel) -> SessionModel:
+    """Helper function to update session status based on current time."""
+    now = datetime.utcnow()
+    print(now)
+    print(session.end_time)
+    if session.end_time < now:
+        session.status = SessionStatus.ended
+    elif session.start_time <= now <= session.end_time:
+        session.status = SessionStatus.active
+    else:
+        session.status = SessionStatus.not_started
+    
+    return session
+
+
 def get_session(db: Session, session_id: int):
-    return db.query(SessionModel).filter(SessionModel.session_id == session_id).first()
+    session = db.query(SessionModel).filter(SessionModel.session_id == session_id).first()
+    if session:
+        session = _update_session_status(session)
+        db.commit()
+    return session
 
 def get_sessions(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(SessionModel).offset(skip).limit(limit).all()
+    sessions = db.query(SessionModel).offset(skip).limit(limit).all()
+    for session in sessions:
+        _update_session_status(session)
+    db.commit()
+    return sessions
 
 def create_session(
     db: Session,
@@ -89,9 +112,11 @@ def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
             )
             .all()
         )
+        for session in course_sessions:
+            _update_session_status(session)
         sessions.extend(course_sessions)
-
-    # TODO: implement filtering based on status
+    
+    db.commit()
     return sessions
 
 def get_sessions_by_professor(db: Session, professor_id: int):
@@ -109,9 +134,10 @@ def get_sessions_by_professor(db: Session, professor_id: int):
             .filter(SessionModel.course_id == course.course_id)
             .all()
         )
+        for session in course_sessions:
+            _update_session_status(session)
         sessions.extend(course_sessions)
 
+    db.commit()
     return sessions
-
-
-#TODO: implement a status update mechanism
+    
