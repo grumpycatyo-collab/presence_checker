@@ -9,8 +9,6 @@ from sqlalchemy.orm import joinedload
 def _update_session_status(session: SessionModel) -> SessionModel:
     """Helper function to update session status based on current time."""
     now = datetime.utcnow()
-    print(now)
-    print(session.end_time)
     if session.end_time < now:
         session.status = SessionStatus.ended
     elif session.start_time <= now <= session.end_time:
