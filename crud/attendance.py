@@ -44,6 +44,12 @@ def update_attendance(db: Session, attendance_id: int, status: AttendanceStatus 
         db.refresh(db_attendance)
     return db_attendance
 
+def delete_attendance(db: Session, attendance_id: int):
+    db_attendance = db.query(Attendance).filter(Attendance.attendance_id == attendance_id).first()
+    if db_attendance:
+        db.delete(db_attendance)
+        db.commit()
+    return db_attendance
 
 def check_attendance(db: Session, rfid_card_id: str, room: str):
     try:
