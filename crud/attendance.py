@@ -51,121 +51,123 @@ def delete_attendance(db: Session, attendance_id: int):
         db.commit()
     return db_attendance
 
-def check_attendance(db: Session, rfid_card_id: str, room: str, time_str: str, day_str: str): ## TODO: To be done when session gets implemented
-    """
-    Process attendance based on RFID scan
-    Returns a message to send back to the device
-    """
+def check_attendance(db: Session, rfid_card_id: str, room: str):
     try:
-        # TODO: Needs absences as a separate thread implemented
-        time_now = datetime.strptime(time_str, "%H:%M:%S")
-        day = datetime.strptime(day_str, "%Y-%m-%d").date()
+        now = datetime.utcnow()
+        today = datetime.utcnow().date()
 
+        logger.info(f"Current time: {now}")
+        logger.info(f"Current date: {today}")
+        logger.info(f"Looking for sessions in room: {room}")
+
+        # Get student
         student = db.query(Student).filter(Student.rfid_card_id == rfid_card_id).first()
         if not student:
             logger.warning(f"Unknown RFID card: {rfid_card_id}")
             return "Unknown card"
 
-        # TODO: Session logic -> needs session implemented
-        # active_session = db.query(Session).filter(
-        #     Session.room == room,
-        #     Session.date == day,
-        #     Session.status == SessionStatus.active,
-        #     Session.start_time <= time_now,
-        #     Session.end_time >= time_now
-        # ).first()
-        #
-        # if not active_session:
-        #     logger.warning(f"No active session found in room {room} at {time_now} on {day}")
-        #     return "No active session"
-        #
-        #
-        # existing_attendance = db.query(Attendance).filter(
-        #     Attendance.session_id == active_session.session_id,
-        #     Attendance.student_id == student.student_id
-        # ).first()
-        #
-        # if existing_attendance:
-        #     logger.info(f"Student {student.name} already marked for session {active_session.session_id}")
-        #     return f"Already marked: {existing_attendance.status.value}"
-
-        status = AttendanceStatus.present
-
-        session_start = datetime.combine(day, active_session.start_time.time())
-        time_full = datetime.combine(day, time_now.time())
-        minutes_late = (time_full - session_start).total_seconds() / 60
-
-        if minutes_late > 15:
-            status = AttendanceStatus.late
-
-
-        attendance = create_attendance(
-            db=db,
-            session_id=active_session.session_id,
-            student_id=student.student_id,
-            status=status,
-            time=time_now
+        # Get all sessions for this room (without date filter)
+        sessions = (
+            db.query(Session)
+            .filter(
+                Session.room == room,
+                )
+            .all()
         )
 
-        logger.info(f"Marked {student.name} as {status.value}")
-        logger.info(f"Attendance ID: {attendance.attendance_id}")
-        return f"Marked: {status.value}"
+        logger.info(f"Found {len(sessions)} sessions in room {room}")
+
+        # Flag to track if we found and processed an active session
+        active_session_processed = False
+
+        # Debug each session
+        for session in sessions:
+            # Extract the date from session.date for clarity
+            session_date = session.date.date() if hasattr(session.date, 'date') else session.date
+            logger.info(f"Session {session.session_id}: date={session_date}, start={session.start_time}, end={session.end_time}")
+
+            # Check if the session date matches today
+            if session_date != today:
+                logger.info(f"Session {session.session_id} is for a different date: {session_date}, skipping")
+                continue
+
+            # Create proper datetime objects for comparison
+            try:
+                start_time = session.start_time.time() if hasattr(session.start_time, 'time') else session.start_time
+                end_time = session.end_time.time() if hasattr(session.end_time, 'time') else session.end_time
+
+                start_datetime = datetime.combine(today, start_time)
+                end_datetime = datetime.combine(today, end_time)
+
+                # Log the individual comparisons
+                is_after_start = now >= start_datetime
+                is_before_end = now <= end_datetime
+
+                logger.info(f"Time checks for session {session.session_id}:")
+                logger.info(f"  After start? {is_after_start} ({now} >= {start_datetime})")
+                logger.info(f"  Before end? {is_before_end} ({now} <= {end_datetime})")
+
+                if is_after_start and is_before_end:
+                    logger.info(f"SUCCESS! Found ACTIVE session: {session.session_id}")
+                    session.status = SessionStatus.active
+
+                    # Process attendance for this active session
+                    existing_attendance = (
+                        db.query(Attendance)
+                        .filter(
+                            Attendance.session_id == session.session_id,
+                            Attendance.student_id == student.student_id,
+                            )
+                        .first()
+                    )
+
+                    if existing_attendance:
+                        logger.info(f"Student {student.name} already marked for session {session.session_id}")
+                        db.commit()  # Still commit status changes
+                        return f"Already marked: {existing_attendance.status.value}"
+
+                    status = AttendanceStatus.present
+                    minutes_late = (now - start_datetime).total_seconds() / 60
+
+                    if minutes_late > 15:
+                        status = AttendanceStatus.late
+                        logger.info(f"Student {student.name} is late ({minutes_late:.1f} minutes)")
+
+                    # Create the attendance record
+                    try:
+                        attendance = create_attendance(
+                            db=db,
+                            session_id=session.session_id,
+                            student_id=student.student_id,
+                            status=status,
+                            time=now,
+                        )
+
+                        db.commit()
+                        logger.info(f"Successfully marked {student.name} as {status.value}")
+                        active_session_processed = True
+                        return f"Marked: {status.value}"
+                    except Exception as e:
+                        logger.error(f"Error creating attendance record: {e}", exc_info=True)
+                        return f"Error creating attendance: {str(e)}"
+                else:
+                    logger.info(f"Session {session.session_id} is not active at current time")
+                    if now < start_datetime:
+                        session.status = SessionStatus.not_started
+                    else:
+                        session.status = SessionStatus.ended
+            except Exception as e:
+                logger.error(f"Error processing session {session.session_id}: {e}", exc_info=True)
+                continue
+
+        db.commit()
+
+        if not active_session_processed:
+            logger.warning(f"No active session found in room {room} at current time")
+            return "No active session"
+
+        return "Attendance processed"
 
     except Exception as e:
-        logger.error(f"Error processing attendance: {e}")
-        return "Error processing attendance"
-
-## Mock attendance checker for testing purposes (will be deleted)
-def mock_check_attendance(db: Session, rfid_card_id: str, room: str, time_str: str, day_str: str):
-    """
-    Process attendance based on RFID scan - mock simplified version without session requirements
-    Returns a message to send back to the device
-    """
-    try:
-
-        time_now = datetime.strptime(time_str, "%H:%M:%S")
-        day = datetime.strptime(day_str, "%Y-%m-%d").date()
-
-
-        mock_session_id = f"{room}_{day.strftime('%Y%m%d')}"
-        logger.info(f"Using mock session ID: {mock_session_id}")
-
-        today_midnight = datetime.combine(day, datetime.min.time())
-
-
-        logger.info(f"Recording attendance for student Arthur in room {room}")
-
-        class_start_time = datetime.strptime("09:00:00", "%H:%M:%S").time()
-        class_start = datetime.combine(day, class_start_time)
-        time_full = datetime.combine(day, time_now.time())
-
-        if time_full > class_start:
-            minutes_late = (time_full - class_start).total_seconds() / 60
-
-            if minutes_late > 15:
-                status = AttendanceStatus.late
-                logger.info(f"Student Arthur is late ({minutes_late:.1f} minutes)")
-            else:
-                status = AttendanceStatus.present
-                logger.info(f"Student Arthur is on time")
-        else:
-            status = AttendanceStatus.present
-            logger.info(f"Student Arthur arrived early")
-
-        attendance_record = {
-            "student_id": 132,
-            "student_name": "Arthur",
-            "room": room,
-            "time": time_now.strftime("%H:%M:%S"),
-            "date": day.strftime("%Y-%m-%d"),
-            "status": status.value
-        }
-
-
-        logger.info(f"Attendance record: {attendance_record}")
-
-        return f"Marked: {status.value}"
-
-    except Exception as e:
-        logger.error(f"Error processing attendance: {e}")
-        return f"Error: {str(e)}"
+        logger.error(f"Error processing attendance: {e}", exc_info=True)
+        return f"Error processing attendance: {str(e)}"
