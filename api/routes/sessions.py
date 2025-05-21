@@ -13,10 +13,24 @@ class SessionStatus(str, Enum):
     active = "active"
     ended = "ended"
 
+class GroupResponse(BaseModel):
+    group_id: int
+    code: str
+
+    class Config:
+        orm_mode = True
+
 class StudentResponse(BaseModel):
     student_id: int
     name: str
-    group_id: int
+    group: GroupResponse
+
+    class Config:
+        orm_mode = True
+
+class CourseResponse(BaseModel):
+    course_id: int
+    name: str
 
     class Config:
         orm_mode = True
@@ -30,7 +44,8 @@ class AttendanceResponse(BaseModel):
         orm_mode = True
 # Schemas
 class SessionBase(BaseModel):
-    course_id: int
+    # course: CourseResponse
+    course: Optional[CourseResponse] = None #just to avoid internal server err if db is not populated correctly
     room: str
     date: datetime
     start_time: datetime
@@ -100,3 +115,5 @@ def get_current_sessions_by_professor(professor_id: int, db: Session = Depends(g
 @router.get("/professor/{professor_id}", response_model=List[SessionResponse])
 def get_all_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
     return session_crud.get_sessions_by_professor(db, professor_id=professor_id)
+
+#TODO: add course name in response
