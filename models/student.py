@@ -10,7 +10,7 @@ class Student(Base):
     student_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     group_id = Column(Integer, ForeignKey("groups.group_id"))
-    rfid_card_id = Column(Integer)
+    rfid_card_id = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

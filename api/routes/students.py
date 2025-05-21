@@ -11,7 +11,7 @@ from crud import student as student_crud
 class StudentBase(BaseModel):
     name: str
     group_id: int
-    rfid_card_id: int
+    rfid_card_id: str
 
 class StudentCreate(StudentBase):
     pass
@@ -19,7 +19,7 @@ class StudentCreate(StudentBase):
 class StudentUpdate(BaseModel):
     name: Optional[str] = None
     group_id: Optional[int] = None
-    rfid_card_id: Optional[int] = None
+    rfid_card_id: Optional[str] = None
 
 class StudentResponse(StudentBase):
     student_id: int
