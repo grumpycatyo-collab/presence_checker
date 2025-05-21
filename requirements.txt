@@ -10,3 +10,4 @@ sqlalchemy~=2.0
 bcrypt~=4.3
 pydantic[email]
 serial
+websockets
