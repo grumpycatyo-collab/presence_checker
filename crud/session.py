@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from models.professor import Professor
 from models.attendance import Attendance
 from models.student import Student
-from models.course import Course
+from models.course import Course, CourseGroup
 from sqlalchemy.orm import joinedload
 
 
@@ -103,10 +103,14 @@ def get_current_sessions_by_professor_and_time(db: Session, professor_id: int):
         course_sessions = (
             db.query(SessionModel)
             .options(
-                # joinedload(SessionModel.attendances).joinedload(Attendance.student)
-                joinedload(SessionModel.attendances).joinedload(Attendance.student).joinedload(Student.group)
-                .joinedload(SessionModel.course).joinedload(Course.group)
+                joinedload(SessionModel.attendances)
+                .joinedload(Attendance.student)
+                .joinedload(Student.group),
+                joinedload(SessionModel.course)
+                .joinedload(Course.course_groups)
+                .joinedload(CourseGroup.group)
             )
+
             .filter(
                 SessionModel.course_id == course.course_id,
                 SessionModel.start_time <= now + buffer,
@@ -131,9 +135,15 @@ def get_sessions_by_professor(db: Session, professor_id: int):
         course_sessions = (
             db.query(SessionModel)
             .options(
-                joinedload(SessionModel.attendances).joinedload(Attendance.student).joinedload(Student.group)
-                .joinedload(SessionModel.course).joinedload(Course.group)
+                joinedload(SessionModel.attendances)
+                .joinedload(Attendance.student)
+                .joinedload(Student.group),
+                joinedload(SessionModel.course)
+                .joinedload(Course.course_groups)
+                .joinedload(CourseGroup.group)
+
             )
+
             .filter(SessionModel.course_id == course.course_id)
             .all()
         )

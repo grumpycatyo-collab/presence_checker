@@ -52,8 +52,14 @@ class SessionBase(BaseModel):
     end_time: datetime
     status: SessionStatus
 
-class SessionCreate(SessionBase):
-    pass
+class SessionCreate(BaseModel):
+    course_id: int
+    room: str
+    date: datetime
+    start_time: datetime
+    end_time: datetime
+    status: SessionStatus
+
 
 class SessionUpdate(BaseModel):
     room: Optional[str] = None
