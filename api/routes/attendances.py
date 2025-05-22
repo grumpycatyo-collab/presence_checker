@@ -36,6 +36,12 @@ class AttendanceResponse(AttendanceBase):
     class Config:
         orm_mode = True
 
+class AttendanceStats(BaseModel):
+    total: int
+    present: int
+    late: int
+    absent: int
+
 router = APIRouter(
     prefix="/attendances",
     tags=["attendances"],
@@ -52,6 +58,31 @@ def read_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 def read_attendances_by_session(session_id: int, db: Session = Depends(get_db)):
     attendances = attendance_crud.get_attendances_by_session(db, session_id=session_id)
     return attendances
+
+@router.get("/session/{session_id}/stats", response_model=AttendanceStats)
+def get_attendance_stats_by_session(session_id: int, db: Session = Depends(get_db)):
+    """
+    Get attendance statistics for a specific session including:
+    - total number of records
+    - count of present students
+    - count of late students
+    - count of absent students
+    """
+    attendances = attendance_crud.get_attendances_by_session(db, session_id=session_id)
+    if not attendances and not attendance_crud.session_exists(db, session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    total = len(attendances)
+    present_count = sum(1 for a in attendances if a.status == AttendanceStatus.present)
+    late_count = sum(1 for a in attendances if a.status == AttendanceStatus.late)
+    absent_count = sum(1 for a in attendances if a.status == AttendanceStatus.absent)
+
+    return {
+        "total": total,
+        "present": present_count,
+        "late": late_count,
+        "absent": absent_count,
+    }
 
 @router.get("/student/{student_id}", response_model=List[AttendanceResponse])
 def read_attendances_by_student(student_id: int, db: Session = Depends(get_db)):
