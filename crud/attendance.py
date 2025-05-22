@@ -124,9 +124,16 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
                     if existing_attendance:
                         logger.info(f"Student {student.name} already marked for session {session.session_id}")
                         if existing_attendance.status == AttendanceStatus.absent:
-                            existing_attendance.status = AttendanceStatus.present
+                            minutes_late = (now - start_datetime).total_seconds() / 60
+                            if minutes_late > 15:
+                                existing_attendance.status = AttendanceStatus.late
+                                logger.info(
+                                    f"Student {student.name} is late ({minutes_late:.1f} minutes)"
+                                )
+                            else:
+                                existing_attendance.status = AttendanceStatus.present
                             logger.info(
-                                f"Student {student.name} was updated as present"
+                                f"Student {student.name} was updated as {existing_attendance.status}"
                             )
                         else:
                             logger.info(
