@@ -123,8 +123,17 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
 
                     if existing_attendance:
                         logger.info(f"Student {student.name} already marked for session {session.session_id}")
-                        db.commit()  # Still commit status changes
-                        return f"Already marked: {existing_attendance.status.value}"
+                        if existing_attendance.status == AttendanceStatus.absent:
+                            existing_attendance.status = AttendanceStatus.present
+                            logger.info(
+                                f"Student {student.name} was updated as present"
+                            )
+                        else:
+                            logger.info(
+                                f"Student {student.name} already marked for session {session.session_id}"
+                            )
+                        db.commit()
+                        return f"Marked: {existing_attendance.status.value}"
 
                     status = AttendanceStatus.present
                     minutes_late = (now - start_datetime).total_seconds() / 60
