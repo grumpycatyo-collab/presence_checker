@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from enum import Enum
+from .attendances import AttendanceStats
 from pydantic import BaseModel
 
 from core.db import get_db
@@ -77,6 +78,16 @@ class SessionResponse(SessionBase):
     class Config:
         orm_mode = True
 
+class SessionWithStatsResponse(SessionBase):
+    session_id: int
+    created_at: datetime
+    updated_at: datetime
+    attendances: List[AttendanceResponse] = []
+    attendance_stats: AttendanceStats
+
+    class Config:
+        from_attributes = True
+
 router = APIRouter(
     prefix="/sessions",
     tags=["sessions"],
@@ -113,10 +124,36 @@ def delete_session(session_id: int, db: Session = Depends(get_db)):
     session_crud.delete_session(db=db, session_id=session_id)
     return {"detail": "Session deleted successfully"}
 
-@router.get("/current/{professor_id}", response_model=List[SessionResponse])
+@router.get("/current/{professor_id}", response_model=List[SessionWithStatsResponse])
 def get_current_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
-    sessions = session_crud.get_current_sessions_by_professor_and_time(db=db, professor_id=professor_id)
-    return sessions
+    sessions = session_crud.get_current_sessions_by_professor_and_time(
+        db=db, professor_id=professor_id
+    )
+
+    sessions_with_stats = []
+    for session in sessions:
+        total_attendances = len(session.attendances)
+        present_count = sum(
+            1 for a in session.attendances if a.status.value == "present"
+        )
+        late_count = sum(1 for a in session.attendances if a.status.value == "late")
+        absent_count = sum(1 for a in session.attendances if a.status.value == "absent")
+
+        # Create stats object
+        stats = AttendanceStats(
+            total=total_attendances,
+            present=present_count,
+            late=late_count,
+            absent=absent_count,
+        )
+
+        session_response = SessionResponse.model_validate(session, from_attributes=True)
+        session_with_stats = SessionWithStatsResponse(
+            **session_response.model_dump(), attendance_stats=stats
+        )
+        sessions_with_stats.append(session_with_stats)
+
+    return sessions_with_stats
 
 @router.get("/professor/{professor_id}", response_model=List[SessionResponse])
 def get_all_sessions_by_professor(professor_id: int, db: Session = Depends(get_db)):
