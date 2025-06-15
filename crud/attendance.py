@@ -91,21 +91,13 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
                 logger.info(f"Session {session.session_id} is for a different date: {session_date}, skipping")
                 continue
 
-            # Create proper datetime objects for comparison
             try:
-                start_time = session.start_time.time() if hasattr(session.start_time, 'time') else session.start_time
-                end_time = session.end_time.time() if hasattr(session.end_time, 'time') else session.end_time
-
-                start_datetime = datetime.combine(today, start_time)
-                end_datetime = datetime.combine(today, end_time)
-
-                # Log the individual comparisons
-                is_after_start = now >= start_datetime
-                is_before_end = now <= end_datetime
+                is_after_start = now >= session.start_time
+                is_before_end = now <= session.end_time
 
                 logger.info(f"Time checks for session {session.session_id}:")
-                logger.info(f"  After start? {is_after_start} ({now} >= {start_datetime})")
-                logger.info(f"  Before end? {is_before_end} ({now} <= {end_datetime})")
+                logger.info(f"  After start? {is_after_start} ({now} >= {session.start_time})")
+                logger.info(f"  Before end? {is_before_end} ({now} <= {session.end_time})")
 
                 if is_after_start and is_before_end:
                     logger.info(f"SUCCESS! Found ACTIVE session: {session.session_id}")
@@ -122,9 +114,11 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
                     )
 
                     if existing_attendance:
-                        logger.info(f"Student {student.name} already marked for session {session.session_id}")
+                        logger.info(
+                            f"Student {student.name} already marked for session {session.session_id}"
+                        )
                         if existing_attendance.status == AttendanceStatus.absent:
-                            minutes_late = (now - start_datetime).total_seconds() / 60
+                            minutes_late = (now - session.start_time).total_seconds() / 60
                             if minutes_late > 15:
                                 existing_attendance.status = AttendanceStatus.late
                                 logger.info(
@@ -135,15 +129,17 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
                             logger.info(
                                 f"Student {student.name} was updated as {existing_attendance.status}"
                             )
+                            db.commit()
+                            return f"Updated: {existing_attendance.status.value}"
                         else:
                             logger.info(
                                 f"Student {student.name} already marked for session {session.session_id}"
                             )
-                        db.commit()
-                        return f"Marked: {existing_attendance.status.value}"
+                            db.commit()
+                            return f"Already marked: {existing_attendance.status.value}"
 
                     status = AttendanceStatus.present
-                    minutes_late = (now - start_datetime).total_seconds() / 60
+                    minutes_late = (now - session.start_time).total_seconds() / 60
 
                     if minutes_late > 15:
                         status = AttendanceStatus.late
@@ -168,7 +164,7 @@ def check_attendance(db: Session, rfid_card_id: str, room: str):
                         return f"Error creating attendance: {str(e)}"
                 else:
                     logger.info(f"Session {session.session_id} is not active at current time")
-                    if now < start_datetime:
+                    if now < session.start_time:
                         session.status = SessionStatus.not_started
                     else:
                         session.status = SessionStatus.ended
