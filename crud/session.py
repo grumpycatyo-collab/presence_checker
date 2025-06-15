@@ -2,11 +2,12 @@ from sqlalchemy.orm import Session
 from models.session import Session as SessionModel, SessionStatus
 from datetime import datetime, timedelta
 from models.professor import Professor
-from models.attendance import Attendance
+from models.attendance import Attendance, AttendanceStatus
 from models.student import Student
 from models.course import Course, CourseGroup
+from models.group import Group
 from sqlalchemy.orm import joinedload
-
+from core.logger import logger
 
 def _update_session_status(session: SessionModel) -> SessionModel:
     """Helper function to update session status based on current time."""
@@ -20,6 +21,48 @@ def _update_session_status(session: SessionModel) -> SessionModel:
     
     return session
 
+
+def _create_absent_attendance_records(db: Session, session_id: int, course_id: int):
+    """Create absent attendance records for all students enrolled in the course."""
+    try:
+        # Get all students enrolled in this course through course-group relationships
+        enrolled_students = (
+            db.query(Student)
+            .join(Group, Student.group_id == Group.group_id)
+            .join(CourseGroup, Group.group_id == CourseGroup.group_id)
+            .filter(CourseGroup.course_id == course_id)
+            .all()
+        )
+
+        if not enrolled_students:
+            logger.warning(f"No students found enrolled in course {course_id}")
+            return
+
+        # Create absent attendance records for each enrolled student
+        attendance_records = []
+        for student in enrolled_students:
+            attendance = Attendance(
+                session_id=session_id,
+                student_id=student.student_id,
+                time=datetime.utcnow(),
+                status=AttendanceStatus.absent,
+            )
+            attendance_records.append(attendance)
+
+        # Bulk insert for better performance
+        db.add_all(attendance_records)
+        db.commit()
+
+        logger.info(
+            f"Created {len(attendance_records)} absent attendance records for session {session_id}"
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Error creating absent attendance records for session {session_id}: {e}"
+        )
+        db.rollback()
+        raise
 
 def get_session(db: Session, session_id: int):
     session = db.query(SessionModel).filter(SessionModel.session_id == session_id).first()
@@ -50,12 +93,19 @@ def create_session(
         date=date,
         start_time=start_time,
         end_time=end_time,
-        status=status
+        status=status,
     )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
+
+    _create_absent_attendance_records(db, db_session.session_id, course_id)
+
+    logger.info(
+        f"Session {db_session.session_id} created with automatic absent attendance records"
+    )
     return db_session
+
 
 def update_session(
     db: Session,
